@@ -19,12 +19,12 @@ TOKEN_PATH = "./fine_tuned_trocr_arabic/tokenizer.json"
 
 from tokenizers import ByteLevelBPETokenizer, 
 
-# Initialize and train the tokenizer
+
 tokenizer = PreTrainedTokenizerFast.from_pretrained(tokenizer_path)
 
 tokenizer.train_from_iterator(["هذا نص تجريبي", "مثال آخر"], vocab_size=32000, special_tokens=["<s>", "<pad>", "</s>", "<unk>"])
 
-# # Save the tokenizer
+
 # tokenizer.save_model(SAVE_PATH)
 print("Start Token ID:", tokenizer.cls_token_id)
 print("Padding Token ID:", tokenizer.pad_token_id)

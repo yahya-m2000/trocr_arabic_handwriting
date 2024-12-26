@@ -1,11 +1,4 @@
-# This script is used to fine-tune the Nougat model on the Arabic image to markdown dataset.
-# The dataset is loaded using the datasets library and split into training and testing datasets.
-# The model is then fine-tuned using the Seq2SeqTrainer class.
-# The model is saved after training.
-# The script will benefit from a machine with multiple GPUs to run efficiently.
-
 from transformers import (
-    NougatProcessor,
     VisionEncoderDecoderModel,
     Seq2SeqTrainingArguments,
     Seq2SeqTrainer,
@@ -41,7 +34,7 @@ print(f"Context length: {context_length}")
 print(f"Model dtype: {torch_dtype}")
 print(model.decoder)
 
-# Measure model size and number of parameters
+# measure model size and number of parameters
 model_size = sum(p.numel() for p in model.parameters()) / 1e9
 print(f"Model size: {model_size}")
 
@@ -93,7 +86,7 @@ model.config.decoder_start_token_id = processor.tokenizer.bos_token_id
 model.config.pad_token_id = processor.tokenizer.pad_token_id
 model.config.vocab_size = model.config.decoder.vocab_size
 
-# Configure beam search parameters
+# configure beam search parameters
 model.config.eos_token_id = processor.tokenizer.sep_token_id
 model.config.max_length = 64
 model.config.early_stopping = True
@@ -124,26 +117,26 @@ training_args = Seq2SeqTrainingArguments(
     per_device_eval_batch_size=16,
     save_total_limit=2,
     logging_steps=5,
-    dataloader_num_workers=8,  # Use multiple processes for data loading
+    dataloader_num_workers=8,  # use multiple processes for data loading
     weight_decay = 0.01,
     predict_with_generate=True,
-    gradient_checkpointing=True,  # Great for memory saving
+    gradient_checkpointing=True,  # memory saving
     bf16=True,
     overwrite_output_dir=True,
     dataloader_pin_memory=True,
     load_best_model_at_end=True,
-    gradient_checkpointing_kwargs={"use_reentrant": False},  # To remove the warning
-    ddp_find_unused_parameters=False,  # Don't know what this does
-    remove_unused_columns=False,  # Gave me warnings so I set it to False
+    gradient_checkpointing_kwargs={"use_reentrant": False},  # to remove the warning
+    ddp_find_unused_parameters=False,  # don't know what this does
+    remove_unused_columns=False,  # gave me warnings so I set it to False
 )
 
 class CustomSeq2SeqTrainer(Seq2SeqTrainer):
     def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
-        # Extract valid inputs for the model
+        # extract valid inputs for the model
         pixel_values = inputs.get("pixel_values")
         labels = inputs.get("labels")
 
-        # Forward pass
+        # forward pass
         outputs = model(pixel_values=pixel_values, labels=labels)
         loss = outputs.loss
 
@@ -159,12 +152,12 @@ trainer = CustomSeq2SeqTrainer(
     callbacks=[EarlyStoppingCallback(early_stopping_patience=3)],
 )
 
-# Train the model
+# train the model
 trainer.train(resume_from_checkpoint=False)
 
 trainer.state.log_history
 
-# Save model
+# save model
 trainer.save_model(str(Path(__file__).parent / "arabic-base-trocr"))
 processor.save_pretrained(str(Path(__file__).parent / "arabic-base-trocr"))
 print("Model saved!")
